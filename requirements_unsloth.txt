@@ -1,0 +1,23 @@
+# ── Core ML ───────────────────────────────────────────────────────────────────
+# pip install -q -U transformers peft accelerate bitsandbytes>=0.46.1 datasets==4.8.5 sentencepiece
+transformers
+peft
+accelerate
+bitsandbytes>=0.46.1
+datasets==4.8.5
+sentencepiece
+
+# ── Unsloth (Colab, install separately — git source) ──────────────────────────
+# pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
+
+# ── TRL (--no-deps avoids version conflicts with unsloth) ─────────────────────
+# pip install --no-deps trl
+trl
+
+# ── Data / utils ──────────────────────────────────────────────────────────────
+pandas
+numpy
+tqdm
+scikit-learn
+matplotlib
