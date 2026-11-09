@@ -26,9 +26,6 @@ from sklearn.model_selection import StratifiedGroupKFold
 from transformers import set_seed
 from trl import SFTTrainer, SFTConfig
 from unsloth import FastLanguageModel
-from google.colab import drive
-
-drive.mount("/content/drive")
 
 # ── 1. Config ────────────────────────────────────────────────────────────────
 MODEL_CONFIGS = {
