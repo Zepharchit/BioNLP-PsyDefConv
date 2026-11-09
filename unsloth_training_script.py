@@ -233,7 +233,7 @@ def load_model_and_tokenizer(seed):
     set_seed(seed)
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name     = MODEL_NAME,
-        max_length = MAX_LENGTH,
+        max_seq_length = MAX_LENGTH,
         dtype          = None,
         load_in_4bit   = True,
         device_map     = {"": 0},
