@@ -47,7 +47,7 @@ SEEDS        = [42, 123]
 SEED_WEIGHTS = [0.5, 0.5]
 
 MAX_LENGTH   = 1024
-EPOCHS       = 5
+EPOCHS       = 1
 LR           = 2e-4
 WEIGHT_DECAY = 0.01
 BATCH_SIZE   = 8
@@ -440,17 +440,16 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
         ),
     )
     trainer.train()
-
+    gc.collect()
+    torch.cuda.empty_cache()
+    
     val_probs  = predict_label_probs(model, tokenizer, val_ds["text"])
     test_probs = predict_label_probs(model, tokenizer, test_ds["text"])
 
     save_probs(val_probs,  seed, fold, "val")
     save_probs(test_probs, seed, fold, "test")
-
-    del trainer, model, tokenizer
+    del model, tokenizer
     del train_ds , val_ds , test_ds
-    gc.collect()
-    torch.cuda.empty_cache()
     torch.cuda.synchronize()
     return val_probs, test_probs
 
