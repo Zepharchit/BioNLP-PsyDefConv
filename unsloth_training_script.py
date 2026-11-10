@@ -440,8 +440,6 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
         ),
     )
     trainer.train()
-    del trainer, model, tokenizer
-    del train_ds , val_ds , test_ds
     gc.collect()
     torch.cuda.empty_cache()
     torch.cuda.synchronize()
@@ -450,7 +448,8 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
 
     save_probs(val_probs,  seed, fold, "val")
     save_probs(test_probs, seed, fold, "test")
-
+    del model, tokenizer
+    del train_ds , val_ds , test_ds
 
     return val_probs, test_probs
 
