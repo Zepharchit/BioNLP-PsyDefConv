@@ -353,7 +353,6 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
         train_dataset    = train_ds,
         args = SFTConfig(
             dataset_text_field          = "text",
-            max_seq_length              = MAX_LENGTH,
             dataset_num_proc            = 2,
             packing                     = False,
             output_dir                  = str(ckpt_dir),
