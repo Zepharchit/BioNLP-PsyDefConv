@@ -442,7 +442,7 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
     trainer.train()
     gc.collect()
     torch.cuda.empty_cache()
-    torch.cuda.synchronize()
+    
     val_probs  = predict_label_probs(model, tokenizer, val_ds["text"])
     test_probs = predict_label_probs(model, tokenizer, test_ds["text"])
 
@@ -450,7 +450,7 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
     save_probs(test_probs, seed, fold, "test")
     del model, tokenizer
     del train_ds , val_ds , test_ds
-
+    torch.cuda.synchronize()
     return val_probs, test_probs
 
 
