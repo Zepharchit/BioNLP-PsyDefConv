@@ -32,7 +32,7 @@ MODEL_CONFIGS = {
     "qwen3_4b":   "unsloth/Qwen3-4B-Instruct",
     "phi4_mini":  "unsloth/Phi-4-mini-reasoning",
 }
-MODEL_KEY  = "qwen3_4b"          # ← change per experiment
+MODEL_KEY  = "llama31_8b"          # ← change per experiment
 MODEL_NAME = MODEL_CONFIGS[MODEL_KEY]
 
 OUTPUT_DIR = Path("/workspace/psydef_unsloth") / MODEL_KEY
