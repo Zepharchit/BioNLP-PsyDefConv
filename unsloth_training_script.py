@@ -381,6 +381,7 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
     Re-uses cached .npy if already present → safe to re-run after disconnect.
     Returns (val_probs, test_probs) shaped (N_val, 9) and (N_test, 9).
     """
+
     cached_val  = try_load_probs(seed, fold, "val")
     cached_test = try_load_probs(seed, fold, "test")
     if cached_val is not None and cached_test is not None:
@@ -447,9 +448,10 @@ def train_fold(seed, fold, tr_df, val_df, test_df):
     save_probs(test_probs, seed, fold, "test")
 
     del trainer, model, tokenizer
+    del train_ds , val_ds , test_ds
     gc.collect()
     torch.cuda.empty_cache()
-
+    torch.cuda.synchronize()
     return val_probs, test_probs
 
 
