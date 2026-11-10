@@ -40,7 +40,7 @@ AUG_PATH   = Path("/workspace/augmented_samples")
 AUG_FILES  = []   # back-translation disabled; hesitation runs inline per fold
 
 N_FOLDS         = 3
-SEEDS           = [42, 123]
+SEEDS           = [42] # later run for seed 123
 MAX_LENGTH      = 1024
 EPOCHS          = 10
 LR              = 2e-4
