@@ -29,8 +29,8 @@ from unsloth import FastLanguageModel
 # ── 1. Config ────────────────────────────────────────────────────────────────
 MODEL_CONFIGS = {
     "llama31_8b": "unsloth/Meta-Llama-3.1-8B-Instruct",
-    "qwen3_4b":   "unsloth/Qwen3-4B-Instruct",
-    "phi4_mini":  "unsloth/Phi-4-mini-reasoning",
+    # "qwen3_4b":   "unsloth/Qwen3-4B-Instruct",
+    # "phi4_mini":  "unsloth/Phi-4-mini-reasoning",
 }
 MODEL_KEY  = "llama31_8b"          # ← change per experiment
 MODEL_NAME = MODEL_CONFIGS[MODEL_KEY]
@@ -40,7 +40,7 @@ AUG_PATH   = Path("/workspace/augmented_samples")
 AUG_FILES  = []   # back-translation disabled; hesitation runs inline per fold
 
 N_FOLDS         = 3
-SEEDS           = [42] # later run for seed 123
+SEEDS           = [132] # [42,132]
 MAX_LENGTH      = 1024
 EPOCHS          = 10
 LR              = 2e-4
