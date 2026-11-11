@@ -23,9 +23,7 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay, precision_recall_fscore_support,
 )
 from sklearn.model_selection import StratifiedGroupKFold
-from google.colab import drive
 
-drive.mount("/content/drive")
 
 # ── 1. Config ────────────────────────────────────────────────────────────────
 MODEL_CONFIGS = {
@@ -36,7 +34,7 @@ MODEL_CONFIGS = {
 MODEL_KEY  = "llama31_8b"          # ← match what was used in train_only.py
 MODEL_NAME = MODEL_CONFIGS[MODEL_KEY]
 
-OUTPUT_DIR = Path("/content/drive/MyDrive/psydef_unsloth") / MODEL_KEY
+OUTPUT_DIR = Path("/workspace/psydef_unsloth") / MODEL_KEY
 
 N_FOLDS      = 3
 SEEDS        = [42, 123]
