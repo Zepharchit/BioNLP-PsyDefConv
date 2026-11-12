@@ -413,7 +413,7 @@ def run_fold(fold_idx, train_df, val_df, test_df, out_subdir=None):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     weights, counts = inverse_sqrt_weights(train_df["label"].values - 1)
-    print(f"\n[fold {fold_idx}] train={len(train_df)}  val={len(val_df)}  test={len(test_df)}")
+    print(f"\n[fold {fold_idx}] train={len(train_df)}  val={len(val_df)}  test={len(test_df)}")d
     print("class counts (0-7):", counts.tolist())
     print("class weights:", [round(float(x), 3) for x in weights])
 
