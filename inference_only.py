@@ -152,7 +152,7 @@ def predict_label_probs(model, tokenizer, prompts, batch_size=16):
         last_pos = enc["attention_mask"].sum(dim=1) - 1
         for j, pos in enumerate(last_pos):
             l9    = torch.stack([logits_full[j, pos, tid] for tid in label_ids])
-            probs = torch.softmax(l9, dim=0).cpu().numpy()
+            probs = torch.softmax(l9, dim=0).float().cpu().numpy()
             all_probs.append(probs)
     return np.array(all_probs, dtype=np.float32)
 
