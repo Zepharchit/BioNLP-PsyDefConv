@@ -323,7 +323,7 @@ def run_ensemble(seed_weights=None, from_checkpoints=False):
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
-run_ensemble()
+run_ensemble(from_checkpoints=True)
 
 # ── Try a different weight split without retraining ───────────────────────────
 # run_ensemble(seed_weights=[0.3, 0.7])
