@@ -37,7 +37,7 @@ MODEL_NAME = MODEL_CONFIGS[MODEL_KEY]
 OUTPUT_DIR = Path("/workspace/psydef_unsloth") / MODEL_KEY
 
 N_FOLDS      = 3
-SEEDS        = [42, 123]
+SEEDS        = [42, 132]
 # ← adjust weights without retraining; must sum to 1
 SEED_WEIGHTS = [0.5, 0.5]
 
