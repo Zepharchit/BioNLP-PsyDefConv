@@ -1,3 +1,9 @@
+# ============================================================================
+# stage1_binary_clf.py
+# Binary gate: No Defense (class 0) vs Has Defense (classes 1–8)
+# Compares Logistic Regression, SVM, Random Forest on sentence embeddings
+# ============================================================================
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -58,13 +64,13 @@ clfs = {
 # ── Fit on train split, compare on val ───────────────────────────────────────
 results = []
 print(f"\n{'─'*50}")
-print(f"{'Model':<25} {'Val F1':<12} {'Val Acc'}")
+print(f"{'Model':<25} {'Val Macro-F1':<12} {'Val Acc'}")
 print(f"{'─'*50}")
 
 for name, clf in clfs.items():
     clf.fit(X_tr, y_tr)
     val_preds = clf.predict(X_val)
-    val_f1    = f1_score(y_val, val_preds)
+    val_f1    = f1_score(y_val, val_preds, average="macro")
     val_acc   = (val_preds == y_val).mean()
     print(f"{name:<25} {val_f1:.4f}       {val_acc:.4f}")
     results.append({"model": name, "val_f1": val_f1, "clf": clf})
@@ -94,7 +100,7 @@ print("Breakdown of misclassified true labels:")
 print(errors["label"].value_counts().to_string())
 
 # ── Save gate model ───────────────────────────────────────────────────────────
-GATE_DIR = Path("/workspace/output")
+GATE_DIR = Path("/root/output")
 GATE_DIR.mkdir(parents=True, exist_ok=True)
 
 joblib.dump(best["clf"], GATE_DIR / "stage1_gate.pkl")

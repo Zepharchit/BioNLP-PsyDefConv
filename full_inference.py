@@ -1,3 +1,16 @@
+# ============================================================================
+# final_inference.py
+# Combines Stage 1 gate (SVM) + Stage 2 LLM → final predictions
+# Run after: stage1_binary_clf.py + lora_training.py / qlora_training.py
+#
+# Usage:
+#   python final_inference.py --model lora            # 3-fold CV ensemble
+#   python final_inference.py --model qlora           # 3-fold CV ensemble
+#   python final_inference.py --model lora  --single  # single-train run
+#   python final_inference.py --model qlora --single  # single-train run
+# ============================================================================
+
+import argparse
 import joblib
 from pathlib import Path
 
@@ -7,21 +20,31 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from datasets import load_dataset
-from sentence_transformers import SentenceTransformer
+from scipy.special import softmax
 from sklearn.metrics import (
     classification_report, confusion_matrix,
     ConfusionMatrixDisplay, precision_recall_fscore_support,
 )
 
-# ── Config ───────────────────────────────────────────────────────────────────
-MODEL_KEY    = "llama31_8b"
-OUTPUT_DIR   = Path("/workspace/output") / MODEL_KEY
-GATE_DIR     = Path("/workspace/output")          # where gate pkl files are saved
-SEED_WEIGHTS = [0.5, 0.5]                         # must match inference_only.py run
+# ── Args ──────────────────────────────────────────────────────────────────────
+parser = argparse.ArgumentParser()
+parser.add_argument("--model", choices=["lora", "qlora"], default="lora",
+                    help="Which Stage 2 model to load (default: lora)")
+parser.add_argument("--single", action="store_true",
+                    help="Load single-train logits instead of 3-fold ensemble")
+args = parser.parse_args()
 
-NUM_CLASSES = 9
-ALL_LABELS  = list(range(NUM_CLASSES))
-POS_LABELS  = list(range(1, NUM_CLASSES))
+# ── Config ───────────────────────────────────────────────────────────────────
+STAGE2_DIRS = {
+    "lora":  Path("/root/output/stage2_lora"),
+    "qlora": Path("/root/output/stage2_qlora"),
+}
+OUTPUT_DIR = STAGE2_DIRS[args.model]
+GATE_DIR   = Path("/root/output")
+N_FOLDS    = 3
+
+ALL_LABELS = list(range(9))
+POS_LABELS = list(range(1, 9))
 
 # ── Load test data ────────────────────────────────────────────────────────────
 print("Loading dataset...")
@@ -40,21 +63,34 @@ X_te = embedder.encode(
     test_df["current_text"].tolist(),
     batch_size=64, show_progress_bar=True, normalize_embeddings=True,
 )
-gate = gate_clf.predict(X_te)   # 0 = no defense, 1 = has defense
+gate = gate_clf.predict(X_te)
 print(f"Gate → predicted class 0: {(gate==0).sum()}  non-zero: {(gate==1).sum()}")
 
-# ── Stage 2: LLM ensemble probs ───────────────────────────────────────────────
-tag       = f"w{'_'.join(str(w) for w in SEED_WEIGHTS)}"
-ens_path  = OUTPUT_DIR / f"test_ensemble_{tag}.npy"
+# ── Stage 2: load logits ──────────────────────────────────────────────────────
+if args.single:
+    logit_path = OUTPUT_DIR / "single" / "test_logits.npy"
+    if not logit_path.exists():
+        raise FileNotFoundError(
+            f"No logits at {logit_path}. Run with --single flag first."
+        )
+    test_logits = np.load(logit_path)
+    print(f"\nLoaded single-train logits: {logit_path}  shape={test_logits.shape}")
+else:
+    print(f"\nLoading Stage 2 logits from {N_FOLDS} folds...")
+    fold_logits = []
+    for fold_idx in range(N_FOLDS):
+        logit_path = OUTPUT_DIR / f"fold_{fold_idx}" / "test_logits.npy"
+        if not logit_path.exists():
+            raise FileNotFoundError(
+                f"No logits at {logit_path}. Run training first."
+            )
+        fold_logits.append(np.load(logit_path))
+        print(f"  fold {fold_idx}: shape={fold_logits[-1].shape}")
+    test_logits = sum(fold_logits) / N_FOLDS
 
-print(f"\nLoading LLM ensemble probs from {ens_path}...")
-if not ens_path.exists():
-    raise FileNotFoundError(
-        f"No ensemble file found at {ens_path}. "
-        "Run inference_only.py first."
-    )
-test_ens  = np.load(ens_path)            # (n_test, 9)
-llm_preds = test_ens.argmax(axis=1)      # raw LLM predictions (1–8)
+# softmax → argmax → remap 0-7 back to 1-8
+test_ens  = softmax(test_logits, axis=1)
+llm_preds = test_ens.argmax(axis=1) + 1
 
 # ── Combine Stage 1 + Stage 2 ─────────────────────────────────────────────────
 final = np.where(gate == 0, 0, llm_preds)
@@ -66,10 +102,11 @@ def compute_metrics(y_true, y_pred):
         p, r, f, _ = precision_recall_fscore_support(
             y_true, y_pred, labels=labs, average="macro", zero_division=0,
         )
-        out[f"p_{tag}"] = p
-        out[f"r_{tag}"] = r
+        out[f"p_{tag}"]  = p
+        out[f"r_{tag}"]  = r
         out[f"f1_{tag}"] = f
     return out
+
 
 def print_metrics(metrics, title=""):
     if title:
@@ -82,37 +119,37 @@ def print_metrics(metrics, title=""):
     for row in rows:
         print(f"  {row[0]:<12} {row[1]:<12} {row[2]:<12} {row[3]}")
 
-# LLM-only baseline (no gate)
-print_metrics(compute_metrics(y_true, llm_preds), "LLM only (no gate)")
 
-# Stage 1 + Stage 2 combined
-print_metrics(compute_metrics(y_true, final), "Final (Stage1 gate + LLM)")
+run_tag = f"{args.model}_{'single' if args.single else '3fold'}"
+print_metrics(compute_metrics(y_true, llm_preds), f"Stage 2 {args.model} only (no gate)")
+print_metrics(compute_metrics(y_true, final),     f"Final (Stage 1 gate + Stage 2 {args.model})")
 
 print("\n--- Full classification report ---")
 print(classification_report(y_true, final, labels=ALL_LABELS, zero_division=0))
 
 # ── Confusion matrix ──────────────────────────────────────────────────────────
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 fig, axes = plt.subplots(1, 2, figsize=(18, 7))
 for ax, preds, title in zip(
     axes,
     [llm_preds, final],
-    ["LLM only", "Stage1 gate + LLM"],
+    [f"Stage 2 {args.model} only", f"Stage 1 gate + Stage 2 {args.model}"],
 ):
     cm = confusion_matrix(y_true, preds, labels=ALL_LABELS)
     ConfusionMatrixDisplay(cm, display_labels=ALL_LABELS).plot(ax=ax, cmap="Blues")
     ax.set_title(title)
 plt.tight_layout()
-cm_path = OUTPUT_DIR / f"final_cm_{MODEL_KEY}.png"
+cm_path = OUTPUT_DIR / f"final_cm_{run_tag}.png"
 plt.savefig(cm_path, dpi=150)
 plt.close()
 print(f"\nConfusion matrix → {cm_path}")
 
 # ── Metrics CSV ───────────────────────────────────────────────────────────────
-csv_path = OUTPUT_DIR / f"metrics_{MODEL_KEY}.csv"
+csv_path = OUTPUT_DIR / f"metrics_{run_tag}.csv"
 rows = [
-    {"split": "test_llm_only",    "model": MODEL_KEY, "gate": False,
+    {"split": "test_llm_only", "model": args.model, "single": args.single, "gate": False,
      **compute_metrics(y_true, llm_preds)},
-    {"split": "test_final",       "model": MODEL_KEY, "gate": True,
+    {"split": "test_final",    "model": args.model, "single": args.single, "gate": True,
      **compute_metrics(y_true, final)},
 ]
 df_metrics = pd.DataFrame(rows)
@@ -123,9 +160,10 @@ else:
 print(f"Metrics CSV → {csv_path}")
 
 # ── Save final predictions ────────────────────────────────────────────────────
-pred_path = OUTPUT_DIR / f"final_predictions_{MODEL_KEY}.csv"
+pred_path = OUTPUT_DIR / f"final_predictions_{run_tag}.csv"
 test_df["pred_llm_only"] = llm_preds
 test_df["pred_gate"]     = gate
 test_df["pred_final"]    = final
 test_df.to_csv(pred_path, index=False)
 print(f"Predictions CSV → {pred_path}")
+print(f"\nBaseline to beat (Na et al., Ministral-8B): pos=0.3148  all=0.3745")
