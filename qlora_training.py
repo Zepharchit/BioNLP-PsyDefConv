@@ -32,8 +32,9 @@ from transformers import (
     Trainer, TrainingArguments, set_seed,
 )
 
+
 # ── Config ───────────────────────────────────────────────────────────────────
-MODEL_NAME = "unsloth/Llama-3.1-8B-Instruct"
+MODEL_NAME = "Qwen/Qwen3-8B"
 
 OUTPUT_DIR = Path("/root/output/stage2_qlora")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -44,8 +45,8 @@ NUM_CLASSES = 8           # 8 output neurons; labels 1-8 remapped to 0-7
 ALL         = list(range(NUM_CLASSES))   # [0..7]
 
 MAX_LENGTH      = 1024
-EPOCHS          = 10
-LEARNING_RATE   = 1e-4
+EPOCHS          = 7
+LEARNING_RATE   = 2e-4
 WEIGHT_DECAY    = 0.01
 MAX_GRAD_NORM   = 0.3
 BATCH_SIZE      = 8
