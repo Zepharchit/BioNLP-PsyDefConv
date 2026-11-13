@@ -29,7 +29,7 @@ parser.add_argument("--single", action="store_true")
 parser.add_argument("--fold", type=int, default=0)
 args = parser.parse_args()
 
-OUTPUT_DIR = Path(f"/root/workspace/output/stage2_{args.model}")
+OUTPUT_DIR = Path(f"/workspace/output/stage2_qlora")
 subdir = "single" if args.single else f"fold_{args.fold}"
 SAVE_DIR = OUTPUT_DIR / subdir
 ADAPTER = SAVE_DIR / "adapter"
