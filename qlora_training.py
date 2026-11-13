@@ -32,11 +32,10 @@ from transformers import (
     Trainer, TrainingArguments, set_seed,
 )
 
-
 # ── Config ───────────────────────────────────────────────────────────────────
 MODEL_NAME = "Qwen/Qwen3-8B"
 
-OUTPUT_DIR = Path("/root/output/stage2_qlora")
+OUTPUT_DIR = Path("/workspace/output/stage2_qlora")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 SEED        = 42
@@ -45,8 +44,8 @@ NUM_CLASSES = 8           # 8 output neurons; labels 1-8 remapped to 0-7
 ALL         = list(range(NUM_CLASSES))   # [0..7]
 
 MAX_LENGTH      = 1024
-EPOCHS          = 7
-LEARNING_RATE   = 2e-4
+EPOCHS          = 10
+LEARNING_RATE   = 1e-4
 WEIGHT_DECAY    = 0.01
 MAX_GRAD_NORM   = 0.3
 BATCH_SIZE      = 8
@@ -297,10 +296,12 @@ class Collator:
         self.tokenizer = tokenizer
 
     def __call__(self, features):
-        labels = torch.tensor([f["labels"] for f in features], dtype=torch.long)
-        feats  = [{k: v for k, v in f.items() if k != "labels"} for f in features]
-        batch  = self.tokenizer.pad(feats, padding=True, return_tensors="pt")
-        batch["labels"] = labels
+        feats = [{k: v for k, v in f.items() if k != "labels"} for f in features]
+        batch = self.tokenizer.pad(feats, padding=True, return_tensors="pt")
+        if "labels" in features[0]:
+            batch["labels"] = torch.tensor(
+                [f["labels"] for f in features], dtype=torch.long
+            )
         return batch
 
 
@@ -376,7 +377,8 @@ def make_training_args(out_dir, fold_idx):
 
 
 def get_logits(trainer, dataset):
-    out    = trainer.predict(dataset)
+    ds = dataset.remove_columns("labels") if "labels" in dataset.column_names else dataset
+    out    = trainer.predict(ds)
     logits = out.predictions
     if isinstance(logits, tuple):
         logits = logits[0]
@@ -413,7 +415,7 @@ def run_fold(fold_idx, train_df, val_df, test_df, out_subdir=None):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     weights, counts = inverse_sqrt_weights(train_df["label"].values - 1)
-    print(f"\n[fold {fold_idx}] train={len(train_df)}  val={len(val_df)}  test={len(test_df)}")d
+    print(f"\n[fold {fold_idx}] train={len(train_df)}  val={len(val_df)}  test={len(test_df)}")
     print("class counts (0-7):", counts.tolist())
     print("class weights:", [round(float(x), 3) for x in weights])
 
