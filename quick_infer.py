@@ -27,8 +27,8 @@ parser.add_argument("--fold",   type=int, default=0,
 args = parser.parse_args()
 
 STAGE2_DIRS = {
-    "lora":  Path("/root/output/stage2_lora"),
-    "qlora": Path("/root/output/stage2_qlora"),
+    "lora":  Path("/root/workspace/output/stage2_lora"),
+    "qlora": Path("/root/workspace/output/stage2_qlora"),
 }
 OUTPUT_DIR = STAGE2_DIRS[args.model]
 subdir     = "single" if args.single else f"fold_{args.fold}"
