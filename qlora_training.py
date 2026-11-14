@@ -33,7 +33,7 @@ from transformers import (
 )
 
 # ── Config ───────────────────────────────────────────────────────────────────
-MODEL_NAME = "unsloth/Llama-3.1-8B-Instruct"
+MODEL_NAME = "Qwen/Qwen3-8B"
 
 OUTPUT_DIR = Path("/root/output/stage2_qlora")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
