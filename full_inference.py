@@ -90,6 +90,14 @@ else:
     test_logits = sum(fold_logits) / N_FOLDS
 
 # softmax → argmax → remap 0-7 back to 1-8
+
+pos_mask = y_true!=0
+n_total = len(test_df)
+if test_logits.shape[0]!=n_total:
+    full_logits = np.zeros((n_total,test_logits.shape[1]))
+    full_logits[pos_mask] = test_logits
+    test_logits = full_logits
+    
 test_ens  = softmax(test_logits, axis=1)
 llm_preds = test_ens.argmax(axis=1) + 1
 
