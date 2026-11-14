@@ -100,7 +100,7 @@ print("Breakdown of misclassified true labels:")
 print(errors["label"].value_counts().to_string())
 
 # ── Save gate model ───────────────────────────────────────────────────────────
-GATE_DIR = Path("/root/output")
+GATE_DIR = Path("/workspace/output")
 GATE_DIR.mkdir(parents=True, exist_ok=True)
 
 joblib.dump(best["clf"], GATE_DIR / "stage1_gate.pkl")
