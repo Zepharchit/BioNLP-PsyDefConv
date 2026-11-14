@@ -37,11 +37,11 @@ args = parser.parse_args()
 
 # ── Config ───────────────────────────────────────────────────────────────────
 STAGE2_DIRS = {
-    "lora":  Path("/root/output/stage2_lora"),
-    "qlora": Path("/root/output/stage2_qlora"),
+    "lora":  Path("/workspace/output/stage2_lora"),
+    "qlora": Path("/workspace/output/stage2_qlora"),
 }
 OUTPUT_DIR = STAGE2_DIRS[args.model]
-GATE_DIR   = Path("/root/output")
+GATE_DIR   = Path("/workspace/output")
 N_FOLDS    = 3
 
 ALL_LABELS = list(range(9))
