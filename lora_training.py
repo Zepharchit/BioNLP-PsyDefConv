@@ -34,7 +34,7 @@ from transformers import (
 # ── Config ───────────────────────────────────────────────────────────────────
 MODEL_NAME = "Qwen/Qwen3-8B"
 
-OUTPUT_DIR = Path("/root/workspace/stage2_lora")
+OUTPUT_DIR = Path("/workspace/stage2_lora")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 SEED        = 42
