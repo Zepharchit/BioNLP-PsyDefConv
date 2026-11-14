@@ -1,6 +1,5 @@
 # ============================================================================
 # lora_training.py
-# Stage 2: fine-tune LLaMA 3.1 8B classifier on labels 1-8 only (3-fold CV).
 # LoRA only — no quantization. Loads model in bf16/fp16.
 # Class 0 is handled by the Stage 1 gate (stage1_binary_clf.py).
 # Labels internally remapped: 1-8 → 0-7 for the 8-class model head.
@@ -34,7 +33,7 @@ from transformers import (
 # ── Config ───────────────────────────────────────────────────────────────────
 MODEL_NAME = "Qwen/Qwen3-8B"
 
-OUTPUT_DIR = Path("/workspace/stage2_lora")
+OUTPUT_DIR = Path("/root/output/stage2_lora")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 SEED        = 42
@@ -56,6 +55,7 @@ LORA_ALPHA    = 64
 LORA_DROPOUT  = 0.05
 
 LABEL_SMOOTHING = 0.05
+FOCAL_GAMMA     = 2.0
 
 MINORITY_LABELS = [1, 2, 3, 4, 5, 8]
 TARGET_COUNT    = 200
@@ -282,6 +282,24 @@ def load_model():
 
 
 # ── Trainer ───────────────────────────────────────────────────────────────────
+def focal_loss(logits, labels, class_weights, gamma=2.0, smoothing=0.05):
+    n = logits.size(1)
+    # smooth targets
+    smooth = torch.full_like(logits, smoothing / (n - 1))
+    smooth.scatter_(1, labels.unsqueeze(1), 1.0 - smoothing)
+    # log-softmax + per-sample CE with smoothed targets
+    log_p = F.log_softmax(logits, dim=-1)
+    ce    = -(smooth * log_p).sum(dim=-1)
+    # focal weight from true-class probability
+    with torch.no_grad():
+        p_t = log_p.exp().gather(1, labels.unsqueeze(1)).squeeze(1)
+        fw  = (1.0 - p_t) ** gamma
+    # per-class alpha weight
+    if class_weights is not None:
+        fw = fw * class_weights.to(logits.device)[labels]
+    return (fw * ce).mean()
+
+
 class Collator:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
@@ -297,20 +315,22 @@ class Collator:
 
 
 class WeightedLossTrainer(Trainer):
-    def __init__(self, *args, class_weights=None, smoothing=0.05, **kwargs):
+    def __init__(self, *args, class_weights=None, smoothing=0.05, gamma=2.0, **kwargs):
         super().__init__(*args, **kwargs)
         self.class_weights = class_weights
         self.smoothing     = smoothing
+        self.gamma         = gamma
 
     def compute_loss(self, model, inputs, return_outputs=False,
                      num_items_in_batch=None):
         labels  = inputs.pop("labels")
         outputs = model(**inputs)
         logits  = outputs.logits.float()
-        loss = F.cross_entropy(
+        loss = focal_loss(
             logits, labels,
-            weight=self.class_weights.to(logits.device),
-            label_smoothing=self.smoothing,
+            class_weights=self.class_weights,
+            gamma=self.gamma,
+            smoothing=self.smoothing,
         )
         return (loss, outputs) if return_outputs else loss
 
@@ -434,6 +454,7 @@ def run_fold(fold_idx, train_df, val_df, test_df, out_subdir=None):
         callbacks        = [EarlyStoppingCallback(early_stopping_patience=3)],
         class_weights    = weights,
         smoothing        = LABEL_SMOOTHING,
+        gamma            = FOCAL_GAMMA,
     )
     trainer.train()
 
